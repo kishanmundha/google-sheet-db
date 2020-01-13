@@ -1,19 +1,20 @@
 {
   "name": "google-sheet-db",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "GoogleSheet Database",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
-    "build": "./node_modules/.bin/tsc --declaration",
+    "prepublish": "npm run build",
+    "build": "./node_modules/.bin/tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kishanmundha/google-sheet-db.git"
   },
-  "publishConfig": { "registry": "https://npm.pkg.github.com/" },
   "keywords": [],
-  "author": "Kishan Mundha",
+  "author": "Kishan Mundha <kishan.mundha@gmail.com>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/kishanmundha/google-sheet-db/issues"
