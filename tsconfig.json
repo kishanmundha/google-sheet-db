@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "module": "commonjs",
+    "target": "es2017",
+    "noImplicitAny": false,
+    "outDir": "./lib",
+    "sourceMap": true,
+    "removeComments": true,
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}

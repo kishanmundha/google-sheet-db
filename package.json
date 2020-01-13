@@ -1,0 +1,27 @@
+{
+  "name": "google-sheet-db",
+  "version": "1.0.0",
+  "description": "GoogleSheet Database",
+  "main": "index.js",
+  "scripts": {
+    "build": "./node_modules/.bin/tsc --declaration",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kishanmundha/google-sheet-db.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kishanmundha/google-sheet-db/issues"
+  },
+  "homepage": "https://github.com/kishanmundha/google-sheet-db#readme",
+  "dependencies": {
+    "@types/uuid": "3.4.6",
+    "googleapis": "^46.0.0",
+    "typescript": "^3.7.4",
+    "uuid": "3.3.3"
+  }
+}
