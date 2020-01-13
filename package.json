@@ -13,7 +13,7 @@
   },
   "publishConfig": { "registry": "https://npm.pkg.github.com/" },
   "keywords": [],
-  "author": "",
+  "author": "Kishan Mundha",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/kishanmundha/google-sheet-db/issues"
