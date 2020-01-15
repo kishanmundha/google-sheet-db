@@ -9,21 +9,43 @@ const debug = (message: string, ...optionalParams: any[]) => {
   console.log('GoogleSheetDb:', message, ...optionalParams);
 };
 
+export interface IOptions {
+  tokenPath?: string;
+  credentialPath?: string;
+  scopes?: string[];
+}
+
+const DEFAULT_SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+const DEFAULT_TOKEN_PATH = 'token.json';
+const DEFAULT_CREDENTIAL_PATH = 'credentials.json';
+
 class GoogleSheet {
   private SPREADSHEET_ID: string = null;
 
   // If modifying these scopes, delete token.json.
-  private SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+  private SCOPES = DEFAULT_SCOPES;
   // The file token.json stores the user's access and refresh tokens, and is
   // created automatically when the authorization flow completes for the first
   // time.
-  private TOKEN_PATH = 'token.json';
-  private CREDENTIAL_PATH = 'credentials.json';
+  private TOKEN_PATH = DEFAULT_TOKEN_PATH;
+  private CREDENTIAL_PATH = DEFAULT_CREDENTIAL_PATH;
 
   private auth = null;
 
-  constructor(spreadsheetId: string) {
+  constructor(spreadsheetId: string, options?: IOptions) {
     this.SPREADSHEET_ID = spreadsheetId;
+
+    if (options) {
+      if (options.scopes) {
+        this.SCOPES = options.scopes;
+      }
+      if (options.tokenPath) {
+        this.TOKEN_PATH = options.tokenPath;
+      }
+      if (options.credentialPath) {
+        this.CREDENTIAL_PATH = options.credentialPath;
+      }
+    }
   }
 
   /**

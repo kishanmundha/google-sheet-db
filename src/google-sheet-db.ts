@@ -1,6 +1,6 @@
 /* tslint:disable: member-ordering */
 import * as uuid from 'uuid/v4';
-import GoogleSheet from './google-sheet';
+import GoogleSheet, { IOptions } from './google-sheet';
 import { ISheetProperty } from './types';
 
 interface IRecord {
@@ -47,8 +47,8 @@ class GoogleSheetDb {
   private googleSheet: GoogleSheet;
   private collections: ICollection[] = [];
 
-  constructor(spreadsheetId: string) {
-    this.googleSheet = new GoogleSheet(spreadsheetId);
+  constructor(spreadsheetId: string, options?: IOptions) {
+    this.googleSheet = new GoogleSheet(spreadsheetId, options);
   }
 
   public async initialize() {
