@@ -13,6 +13,7 @@ export interface IOptions {
   tokenPath?: string;
   credentialPath?: string;
   scopes?: string[];
+  auth?: any;
 }
 
 const DEFAULT_SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
@@ -44,6 +45,10 @@ class GoogleSheet {
       }
       if (options.credentialPath) {
         this.CREDENTIAL_PATH = options.credentialPath;
+      }
+
+      if (options.auth) {
+        this.auth = options.auth;
       }
     }
   }
@@ -106,6 +111,10 @@ class GoogleSheet {
   }
 
   public authenticate() {
+    if (this.auth) {
+      return Promise.resolve();
+    }
+    
     return new Promise((resolve, reject) => {
       // Load client secrets from a local file.
       fs.readFile(this.CREDENTIAL_PATH, (err, content) => {
