@@ -180,7 +180,7 @@ class GoogleSheet {
   }
 
   public async removeRows(sheetId: number, startIndex: number, count: number): Promise<void> {
-    console.log('remove row', startIndex, count);
+    debug('remove row', startIndex, count);
     const sheets = google.sheets({ version: 'v4', auth: this.auth });
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: this.SPREADSHEET_ID,

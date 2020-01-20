@@ -286,6 +286,49 @@ class GoogleSheetDb {
 
     return true;
   }
+
+  public async refreshRecord<T extends IRecord>(collectionName: string, record: T) {
+    const collection = this.collections.find(x => x.name === collectionName);
+
+    if (!collection) {
+      throw new Error('Collection not exists');
+    }
+
+    if (!record) {
+      throw new Error('Invalid record');
+    }
+
+    if (typeof record._index !== 'number') {
+      throw new Error('Invalid index');
+    }
+
+    const sheetName = collection.name;
+    const rangeStart = `A${record._index + 2}`;
+    const rangeEnd = `${getColumnByIndex(collection.columns.length)}${1 + record._index + 1}`;
+
+    const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
+
+    const item: IRecord = {
+      _index: record._index,
+      _id: record._id,
+    };
+
+    const columns = collection.columns;
+    const columnMap = collection.column_map;
+    const rowItem = rows[0];
+    // tslint:disable-next-line: prefer-for-of
+    for (let i = 0; i < columns.length; i++) {
+      item[columns[i]] = rowItem[columnMap[columns[i]].index];
+    }
+
+    Object.keys(record).forEach(key => {
+      if (key === '_index' || key === '_id') {
+        return;
+      }
+
+      (record as any)[key] = item[key];
+    })
+  }
 }
 
 export default GoogleSheetDb;
