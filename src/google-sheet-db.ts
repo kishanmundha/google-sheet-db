@@ -53,55 +53,7 @@ class GoogleSheetDb {
 
   public async initialize() {
     await this.googleSheet.authenticate();
-
-    const sheets = await this.googleSheet.getSheets();
-
-    for (const sheet of sheets) {
-      const data = [];
-      const columns = [];
-      const columnMap: IColumnMap = {};
-
-      if (sheet.gridProperties.rowCount && sheet.gridProperties.columnCount) {
-        const sheetName = sheet.title;
-        const rangeStart = `${getColumnByIndex(1)}1`;
-        const rangeEnd = `${getColumnByIndex(sheet.gridProperties.columnCount)}${sheet.gridProperties.rowCount}`;
-        const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
-
-        const headerRow = rows[0];
-        headerRow.forEach((x, i) => {
-          if (!x) {
-            columns.push(`_column_${i}`);
-            columnMap[`_column_${i}`] = { index: i };
-          } else {
-            columns.push(x);
-            columnMap[x] = { index: i };
-          }
-        });
-
-        rows.splice(0, 1);
-
-        rows.forEach((x, index) => {
-          const item: IRecord = {
-            _index: index,
-            _id: uuid(),
-          };
-          // tslint:disable-next-line: prefer-for-of
-          for (let i = 0; i < columns.length; i++) {
-            item[columns[i]] = x[columnMap[columns[i]].index];
-          }
-
-          data.push(item);
-        });
-      }
-
-      this.collections.push({
-        name: sheet.title,
-        sheet,
-        columns,
-        column_map: columnMap,
-        data,
-      });
-    }
+    await this.refreshAll();
   }
 
   private async createSheet(collectionName: string) {
@@ -328,6 +280,119 @@ class GoogleSheetDb {
 
       (record as any)[key] = item[key];
     })
+  }
+
+  public async refreshCollection(collectionName: string) {
+    const collection = this.collections.find(x => x.name === collectionName);
+
+    if (!collection) {
+      throw new Error('Collection not exists');
+    }
+
+    const sheets = await this.googleSheet.getSheets();
+
+    const sheet = sheets.find(x => x.title === collectionName);
+
+    if (!sheet) {
+      throw new Error('Sheet not found');
+    }
+
+    const data = [];
+    const columns = [];
+    const columnMap: IColumnMap = {};
+
+    if (sheet.gridProperties.rowCount && sheet.gridProperties.columnCount) {
+      const sheetName = sheet.title;
+      const rangeStart = `${getColumnByIndex(1)}1`;
+      const rangeEnd = `${getColumnByIndex(sheet.gridProperties.columnCount)}${sheet.gridProperties.rowCount}`;
+      const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
+
+      const headerRow = rows[0];
+      headerRow.forEach((x, i) => {
+        if (!x) {
+          columns.push(`_column_${i}`);
+          columnMap[`_column_${i}`] = { index: i };
+        } else {
+          columns.push(x);
+          columnMap[x] = { index: i };
+        }
+      });
+
+      rows.splice(0, 1);
+
+      rows.forEach((x, index) => {
+        const item: IRecord = {
+          _index: index,
+          _id: uuid(),
+        };
+        // tslint:disable-next-line: prefer-for-of
+        for (let i = 0; i < columns.length; i++) {
+          item[columns[i]] = x[columnMap[columns[i]].index];
+        }
+
+        data.push(item);
+      });
+    }
+
+    collection.name = sheet.title;
+    collection.name = sheet.title;
+    collection.sheet = sheet;
+    collection.columns = columns;
+    collection.column_map = columnMap;
+    collection.data = data;
+  }
+
+  public async refreshAll() {
+    const sheets = await this.googleSheet.getSheets();
+
+    for (const sheet of sheets) {
+      const data = [];
+      const columns = [];
+      const columnMap: IColumnMap = {};
+
+      if (sheet.gridProperties.rowCount && sheet.gridProperties.columnCount) {
+        const sheetName = sheet.title;
+        const rangeStart = `${getColumnByIndex(1)}1`;
+        const rangeEnd = `${getColumnByIndex(sheet.gridProperties.columnCount)}${sheet.gridProperties.rowCount}`;
+        const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
+
+        const headerRow = rows[0];
+        headerRow.forEach((x, i) => {
+          if (!x) {
+            columns.push(`_column_${i}`);
+            columnMap[`_column_${i}`] = { index: i };
+          } else {
+            columns.push(x);
+            columnMap[x] = { index: i };
+          }
+        });
+
+        rows.splice(0, 1);
+
+        rows.forEach((x, index) => {
+          const item: IRecord = {
+            _index: index,
+            _id: uuid(),
+          };
+          // tslint:disable-next-line: prefer-for-of
+          for (let i = 0; i < columns.length; i++) {
+            item[columns[i]] = x[columnMap[columns[i]].index];
+          }
+
+          data.push(item);
+        });
+      }
+
+      this.collections.length = 0;
+
+      this.collections.push({
+        name: sheet.title,
+        sheet,
+        columns,
+        column_map: columnMap,
+        data,
+      });
+    }
   }
 }
 

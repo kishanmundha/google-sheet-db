@@ -1,6 +1,6 @@
 {
   "name": "google-sheet-db",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "GoogleSheet Database",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
