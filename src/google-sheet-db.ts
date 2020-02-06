@@ -21,6 +21,7 @@ interface ICollection<T extends IRecord = IRecord> {
   columns: string[];
   column_map: IColumnMap;
   data: T[];
+  initialized?: boolean;
 }
 
 const defaultPredicateFn = (): boolean => true;
@@ -53,7 +54,20 @@ class GoogleSheetDb {
 
   public async initialize() {
     await this.googleSheet.authenticate();
-    await this.refreshAll();
+    const sheets = await this.googleSheet.getSheets();
+
+    this.collections.length = 0;
+
+    for (const sheet of sheets) {
+      this.collections.push({
+        name: sheet.title,
+        sheet,
+        column_map: {},
+        columns: [],
+        data: [],
+        initialized: false,
+      });
+    }
   }
 
   private async createSheet(collectionName: string) {
@@ -71,6 +85,70 @@ class GoogleSheetDb {
       return x && x.startsWith('_column_') ? '' : x;
     })];
     await this.googleSheet.writeData(`${sheetName}!${rangeStart}:${rangeEnd}`, values);
+  }
+
+  private async getCollectionDataBySheet(sheet: ISheetProperty): Promise<ICollection> {
+    const data = [];
+    const columns = [];
+    const columnMap: IColumnMap = {};
+
+    if (sheet.gridProperties.rowCount && sheet.gridProperties.columnCount) {
+      const sheetName = sheet.title;
+      const rangeStart = `${getColumnByIndex(1)}1`;
+      const rangeEnd = `${getColumnByIndex(sheet.gridProperties.columnCount)}${sheet.gridProperties.rowCount}`;
+      const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
+
+      const headerRow = rows[0];
+      headerRow.forEach((x, i) => {
+        if (!x) {
+          columns.push(`_column_${i}`);
+          columnMap[`_column_${i}`] = { index: i };
+        } else {
+          columns.push(x);
+          columnMap[x] = { index: i };
+        }
+      });
+
+      rows.splice(0, 1);
+
+      rows.forEach((x, index) => {
+        const item: IRecord = {
+          _index: index,
+          _id: uuid(),
+        };
+        // tslint:disable-next-line: prefer-for-of
+        for (let i = 0; i < columns.length; i++) {
+          item[columns[i]] = x[columnMap[columns[i]].index];
+        }
+
+        data.push(item);
+      });
+    }
+
+    return {
+      name: sheet.title,
+      sheet,
+      columns,
+      column_map: columnMap,
+      data,
+      initialized: true,
+    }
+  }
+
+  private async initCollection(collection: ICollection) {
+    if (collection.initialized) {
+      // already initialized
+      return;
+    }
+
+    
+    const sheet = collection.sheet;
+    const _collection = await this.getCollectionDataBySheet(sheet);
+
+    collection.columns = _collection.columns;
+    collection.column_map = _collection.column_map;
+    collection.data = _collection.data;
+    collection.initialized = true;
   }
 
   public async insert<T extends IRecord>(collectionName: string, record: T) {
@@ -96,6 +174,8 @@ class GoogleSheetDb {
 
     if (!collection.sheet) {
       collection.sheet = await this.createSheet(collection.name);
+    } else {
+      await this.initCollection(collection);
     }
 
     const values = [];
@@ -149,6 +229,8 @@ class GoogleSheetDb {
       return [];
     }
 
+    await this.initCollection(collection);
+
     return collection.data.filter(predicate || defaultPredicateFn);
   }
 
@@ -168,6 +250,8 @@ class GoogleSheetDb {
     if (!collection) {
       return 0;
     }
+
+    await this.initCollection(collection);
 
     const deleteIndex = [];
     collection.data.forEach((value: T, index, obj: T[]) => {
@@ -204,6 +288,8 @@ class GoogleSheetDb {
     if (typeof record._index !== 'number') {
       throw new Error('Invalid index');
     }
+
+    await this.initCollection(collection);
 
     const values = [];
     let syncHeader = false;
@@ -254,6 +340,8 @@ class GoogleSheetDb {
       throw new Error('Invalid index');
     }
 
+    await this.initCollection(collection);
+
     const sheetName = collection.name;
     const rangeStart = `A${record._index + 2}`;
     const rangeEnd = `${getColumnByIndex(collection.columns.length)}${1 + record._index + 1}`;
@@ -297,100 +385,31 @@ class GoogleSheetDb {
       throw new Error('Sheet not found');
     }
 
-    const data = [];
-    const columns = [];
-    const columnMap: IColumnMap = {};
+    const _collection = await this.getCollectionDataBySheet(sheet);
 
-    if (sheet.gridProperties.rowCount && sheet.gridProperties.columnCount) {
-      const sheetName = sheet.title;
-      const rangeStart = `${getColumnByIndex(1)}1`;
-      const rangeEnd = `${getColumnByIndex(sheet.gridProperties.columnCount)}${sheet.gridProperties.rowCount}`;
-      const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
-
-      const headerRow = rows[0];
-      headerRow.forEach((x, i) => {
-        if (!x) {
-          columns.push(`_column_${i}`);
-          columnMap[`_column_${i}`] = { index: i };
-        } else {
-          columns.push(x);
-          columnMap[x] = { index: i };
-        }
-      });
-
-      rows.splice(0, 1);
-
-      rows.forEach((x, index) => {
-        const item: IRecord = {
-          _index: index,
-          _id: uuid(),
-        };
-        // tslint:disable-next-line: prefer-for-of
-        for (let i = 0; i < columns.length; i++) {
-          item[columns[i]] = x[columnMap[columns[i]].index];
-        }
-
-        data.push(item);
-      });
-    }
-
-    collection.name = sheet.title;
     collection.name = sheet.title;
     collection.sheet = sheet;
-    collection.columns = columns;
-    collection.column_map = columnMap;
-    collection.data = data;
+    collection.columns = _collection.columns;
+    collection.column_map = _collection.column_map;
+    collection.data = _collection.data;
+    collection.initialized = true;
   }
 
   public async refreshAll() {
     const sheets = await this.googleSheet.getSheets();
 
+    this.collections.length = 0;
+
     for (const sheet of sheets) {
-      const data = [];
-      const columns = [];
-      const columnMap: IColumnMap = {};
-
-      if (sheet.gridProperties.rowCount && sheet.gridProperties.columnCount) {
-        const sheetName = sheet.title;
-        const rangeStart = `${getColumnByIndex(1)}1`;
-        const rangeEnd = `${getColumnByIndex(sheet.gridProperties.columnCount)}${sheet.gridProperties.rowCount}`;
-        const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
-
-        const headerRow = rows[0];
-        headerRow.forEach((x, i) => {
-          if (!x) {
-            columns.push(`_column_${i}`);
-            columnMap[`_column_${i}`] = { index: i };
-          } else {
-            columns.push(x);
-            columnMap[x] = { index: i };
-          }
-        });
-
-        rows.splice(0, 1);
-
-        rows.forEach((x, index) => {
-          const item: IRecord = {
-            _index: index,
-            _id: uuid(),
-          };
-          // tslint:disable-next-line: prefer-for-of
-          for (let i = 0; i < columns.length; i++) {
-            item[columns[i]] = x[columnMap[columns[i]].index];
-          }
-
-          data.push(item);
-        });
-      }
-
-      this.collections.length = 0;
+      const _collection = await this.getCollectionDataBySheet(sheet);
 
       this.collections.push({
         name: sheet.title,
         sheet,
-        columns,
-        column_map: columnMap,
-        data,
+        columns: _collection.columns,
+        column_map: _collection.column_map,
+        data: _collection.data,
+        initialized: true,
       });
     }
   }
