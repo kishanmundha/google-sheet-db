@@ -96,9 +96,13 @@ class GoogleSheetDb {
       const sheetName = sheet.title;
       const rangeStart = `${getColumnByIndex(1)}1`;
       const rangeEnd = `${getColumnByIndex(sheet.gridProperties.columnCount)}${sheet.gridProperties.rowCount}`;
-      const rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
+      let rows = await this.googleSheet.readData(`${sheetName}!${rangeStart}:${rangeEnd}`);
 
-      const headerRow = rows[0];
+      if (!rows) {
+        rows = [];
+      }
+
+      const headerRow = rows[0] || [];
       headerRow.forEach((x, i) => {
         if (!x) {
           columns.push(`_column_${i}`);
